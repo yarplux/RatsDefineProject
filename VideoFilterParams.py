@@ -12,16 +12,32 @@
 import cv2
 import utilFunctions as uF
 from enum import Enum
+from random import randrange
 
 import time
 import os
 import numpy as np
 
+# Глобальные переменные для обработчиков событий (необязательная инициализация, просто определённые имена в одном месте)
+# ---------------------------------------------------------------------------------------------------------------
+cx = 0
+cy = 0
+delay = 0
+mouseDown = False
+
+
 # ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
 # ---------------------------------------------------------------------------------------------------------------
 
 
-def f(x): return x
+def onChangeDelay(x):
+    global delay
+    delay = x
+    return x
+
+
+def f(x):
+    return x
 
 
 def chooseObject(event, x, y, flags, param):                                                                            # Функция обработчика нажатия мыши
@@ -38,8 +54,14 @@ def chooseObject(event, x, y, flags, param):                                    
 # ИЦИНИАЛИЗАЦИЯ
 # ---------------------------------------------------------------------------------------------------------------
 
+
 print('Input filename:')
-filename = input()
+
+# TO DO вынести в настройки
+if os.path.exists('./videos'):
+    filename = './videos/'
+
+filename = filename + input()
 
 fOptions = open('options.txt', 'r')
 opt = {}
@@ -55,9 +77,7 @@ while line:
             topt[line[0]] = line[1]
     line = fOptions.readline()
 fOptions.close()
-
-print(opt)
-print(topt)
+#print(opt, topt)
 
 
 class Out(Enum):
@@ -81,7 +101,11 @@ for win in Out:
     numx += 1
 
     if "set" in win.name:
-        for n in ['x0', 'width', 'y0', 'height', 'delay']:                                                              # 4 бегунка для настройки обрезки кадра + для задержки кадров
+        cv2.createTrackbar('Delay', win.name, opt['delay'], opt['delay_Max'], onChangeDelay)
+        cv2.setTrackbarMin('Delay', win.name, 1)
+        delay = opt['delay']
+
+        for n in ['x0', 'width', 'y0', 'height']:                                                              # 4 бегунка для настройки обрезки кадра
             cv2.createTrackbar(n, win.name, opt[n], opt[n+'_Max'], f)
 
         for n in ['h1','h2','s1','s2','v1','v2']:                                                                       # 6 бегунков для настройки начального и конечного цвета фильтра
@@ -94,10 +118,9 @@ for win in Out:
 # ---------------------------------------------------------------------------------------------------------------
 
 flExit = False
-mouseDown = False
-
 # Цикл прокрутки видео заново по кругу до выхода
 while not flExit:
+
 
     cap = cv2.VideoCapture(filename)
     ret, img = cap.read()
@@ -132,9 +155,8 @@ while not flExit:
             tempx, tempy, area = uF.findMaxCenter(results[Out.resImg.value])                                            # Поиск центра максимального контура в кадре
             cx, cy = uF.circleIf([tempx, tempy, area], [cx, cy], (255, 0, 0), opt['maxjump'], results[Out.copy.value])  # Новое положение круга-метки центра
 
-            for img in Out:                                                                                             # отображение - перерисовка всех окон, кроме окна опций
-                if img.name != Out.set.name:
-                    cv2.imshow(img.name, results[img.value])
+            for img in [Out.source, Out.resImg, Out.copy]:                                                                                             # отображение - перерисовка всех окон, кроме окна опций
+                cv2.imshow(img.name, results[img.value])
             cv2.imshow(Out.track.name, trace)                                                                           # Дорисовка трека
 
             if not (cx*2 == last[len(last)-1][0] and cy*2 == last[len(last)-1][1]):                                     # строим линию основного трека, если текущие отвечают условиям
@@ -145,14 +167,22 @@ while not flExit:
             cap.release()
             raise
 
-        cv2.waitKey(cv2.getTrackbarPos('delay', Out.set.name))
+        ch = cv2.waitKey(delay)
+        if ch == 32 or ch == 27:
+            if ch == 27: flExit = True
 
-    uF.analizeTrace(last, 30)
-    track = uF.printTrace(trace, last, (opt['bL'], opt['gL'], opt['rL']))
-    cv2.imshow(Out.track.name, track)
-    cv2.imwrite(topt['trackFile'], track)
-    cv2.waitKey()
-    flExit = True
+            uF.analizeTrace(last, 30)
+            track = uF.printTrace(trace, last, (opt['bL'], opt['gL'], opt['rL']))
+            cv2.imshow(Out.track.name, track)
+            ch = cv2.waitKey()
+
+            if ch == 27: flExit = True
+
     cap.release()
 
+# TO DO вынести в настройки
+if not os.path.exists('./tracks'):
+    os.makedirs('./tracks')
+
+cv2.imwrite('./tracks' + topt['trackFile'] + '_' + str(randrange(10000))+'.png', track)
 cv2.destroyAllWindows()
