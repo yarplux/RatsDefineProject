@@ -1,0 +1,2 @@
+python VideoFilterParams.py
+PAUSE
