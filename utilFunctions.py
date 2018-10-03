@@ -21,7 +21,7 @@ def dist(p1, p2):
 
 
 # Функция обрезки картинки
-def imgCut(img, settings):
+def img_cut(img, settings):
     x = cv2.getTrackbarPos('x0', settings)
     w = cv2.getTrackbarPos('width', settings)
     y = cv2.getTrackbarPos('y0', settings)
@@ -48,7 +48,7 @@ def circleIf(newobj, old, color, maxjump, img):
 
 
 # Функция поиска центра максимального контура на заданной картинке
-def findMaxCenter(img):
+def find_center(img):
     im, contours, hierarchy = cv2.findContours(img, 1, 2)
 
     max = 0
@@ -74,18 +74,14 @@ def findMaxCenter(img):
 
 
 # Функция обработки изображения по данному фильтру
-def imageFilter(img, window):
+def img_filter(img, window):
 
     # Размытие
     blurGauss = cv2.GaussianBlur(img, (3, 3), 0)
 
     # Преобразуем RGB картинку в HSV модель
     imgHsv = cv2.cvtColor(blurGauss, cv2.COLOR_BGR2HSV)
-    #imgHsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
 
-    #thresh = imgHsv.copy()
-    #cv2.threshold(imgHsv, thresh, 127,255, cv2.THRESH_BINARY)
-    #cv2.imshow(window, thresh)
     # Получение данных с движков настройки
     h1 = cv2.getTrackbarPos('h1', window)
     s1 = cv2.getTrackbarPos('s1', window)
@@ -102,7 +98,7 @@ def imageFilter(img, window):
 
 
 # Функция записи трека:
-def printTrace(img, last, path_color):
+def print_trace(img, last, path_color):
     first = True
     track = img.copy()
     for i in range(0, len(last)):
