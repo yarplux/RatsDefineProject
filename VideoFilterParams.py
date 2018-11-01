@@ -1,5 +1,3 @@
-# Этап 3 - ручная фиксация траектории
-
 import cv2
 from enum import Enum
 from random import randrange
@@ -32,7 +30,8 @@ last = {}
 
 
 class WE(Enum):
-    source, resImg, set, track, plot = range(5)
+    # TODO добавить plot - для построения графика
+    source, resImg, set, track = range(4)
 
 
 # ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
@@ -134,7 +133,7 @@ def chs_obj(event, x, y, flags, param):
 
 
 def frame_exec():
-    global results, WE, trace, plot, cx, cy
+    global results, WE, trace, cx, cy
 
     if not (cx == 0 and cy == 0):
         cv2.circle(results[WE.source.value], (cx, cy), 10, (255, 0, 0), -1)
@@ -253,7 +252,7 @@ while not flExit:
 
     time_length = int(cap.get(cv2.CAP_PROP_FRAME_COUNT)/opt['FPS'])
 
-    cv2.createTrackbar('Moment', WE.source.name, 120, 240, on_chg_s)
+    #cv2.createTrackbar('Moment', WE.source.name, 120, 240, on_chg_s)
 
     print('Opened video: ' + video_name
           + '\nVideo Length (from OpenCV and def FPS): '
@@ -264,8 +263,8 @@ while not flExit:
 
     ret, img = cap.read()
     h, w = img.shape[:2]
-    h *= 2
-    w *= 2
+    #h *= 2
+    #w *= 2
     img = cv2.resize(img, (w, h), interpolation = cv2.INTER_CUBIC)
 
     results = [np.zeros((h, w, 3), np.uint8) for i in WE]
@@ -339,7 +338,7 @@ while not flExit:
                 keys.append(counter)
 
                 if len(keys) > 1:
-                    trace = results[WE.plot.value]
+                    #trace = results[WE.plot.value]
                     p2 = last[keys[-1]]
                     p1 = last[keys[-2]]
                     cv2.line(trace, (p1[0], p1[1]), (p2[0], p2[1]), (opt['bT'], opt['gT'], opt['rT']), 1)
@@ -363,10 +362,10 @@ while not flExit:
 
         elif ch == 32:
             waiting = True
-           # uF.analizeTrace(last, 30)
-    #track, plot = uF.print_trace(trace, last, counter, (opt['bL'], opt['gL'], opt['rL']), opt['FPS'], opt['SpeedDelta'])
+            # uF.analizeTrace(last, 30)
+            #track, plot = uF.print_trace(trace, last, counter, (opt['bL'], opt['gL'], opt['rL']), opt['FPS'], opt['SpeedDelta'])
             #track, plot = uF.print_trace(trace, last, (opt['bL'], opt['gL'], opt['rL']))
-            track = uF.print_trace(trace, last, (opt['bL'], opt['gL'], opt['rL']))
+            #track = uF.print_trace(trace, last, (opt['bL'], opt['gL'], opt['rL']))
             cv2.imshow(WE.track.name, track)
             ch = cv2.waitKey()
 
@@ -420,7 +419,7 @@ if messagebox.askyesno(cs.DIALOG_TITLE_GENERAL, cs.DIALOG_TEXT_SAVE_TRACK):
 
     fOptions.close()
 
-    print('Saved speed plot:', plotname)
+    # print('Saved speed plot:', plotname)
 
 if messagebox.askyesno(cs.DIALOG_TITLE_GENERAL, cs.DIALOG_TEXT_SAVE_OPTIONS):
 

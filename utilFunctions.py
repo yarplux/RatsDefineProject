@@ -98,14 +98,22 @@ def img_filter(img, window):
 
 
 # Функция записи трека:
-def print_trace(img, last, path_color):
+def print_trace(img, last, counter, path_color):
     first = True
     track = img.copy()
-    for i in range(0, len(last)):
+
+    for i in sorted(last.keys()):
+        if i == counter:
+            break
         if first:
             first = False
+            p1 = last.get(i)
             continue
-        cv2.line(track, (last[i-1][0], last[i-1][1]), (last[i][0], last[i][1]), path_color, 1)
+
+        p2 = last.get(i)
+        cv2.line(track, (p1[0],p1[1]), (p2[0], p2[1]), path_color, 1)
+        p1 = p2
+
     return track
 
 

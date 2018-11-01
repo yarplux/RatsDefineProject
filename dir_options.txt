@@ -1,3 +1,3 @@
 #
-last_video D:/1_WORK/iSpyData/2018_04_6-19_SHR_4x/Cell_2
+last_video D:/DevTemp/PyCharm/tmpOpencv/videos
 
