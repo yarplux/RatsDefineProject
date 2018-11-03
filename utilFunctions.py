@@ -69,8 +69,12 @@ def find_center(img):
         if (area != 0):
             x = int(M['m10'] / area)
             y = int(M['m01'] / area)
+        return (x, y, area, contours[index])
 
-    return (x, y, area)
+    return (0,0,0,0)
+
+
+
 
 
 # Функция обработки изображения по данному фильтру

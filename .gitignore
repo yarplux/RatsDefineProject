@@ -114,6 +114,7 @@ out
 gen
 .gitignore
 .idea/
-RatVision.xmind
+*.xmind
 tracks/
 videos/
+news.txt

@@ -285,17 +285,23 @@ while not flExit:
         waiting = False
         for number in range(cv2.getTrackbarPos('FrameDelta', WE.set.name)):
             ret, img = cap.read()
+            # при достижении последнего фрейма - выход или сначала
+            if (not ret) or counter >= length:
+                ret = False
+                break
+
             results[WE.source.value] = cv2.resize(img, (w, h), interpolation=cv2.INTER_CUBIC)
             counter += 1
 
         cv2.setTrackbarPos('Frame', WE.set.name, counter)
 
-        # при достижении последнего фрейма - сброс на паузу
-        if (not ret) or counter >= length:
-            flExit = True
-            break
+        # при достижении последнего фрейма - сначала
+        if not ret:
+            waiting = True
+            ch = 27
+        else:
+            ch = 0
 
-        ch = 0
         try:
             results[WE.source.value] = uF.img_cut(results[WE.source.value], WE.set.name)
             results[WE.resImg.value] = uF.img_filter(results[WE.source.value], WE.set.name)
@@ -304,32 +310,33 @@ while not flExit:
             if start:  # Для первого кадра - нажатие мышкой
                 start = False
                 waiting = True
-                messagebox.showinfo(cs.DIALOG_TITLE_GENERAL, cs.INSTRUCTIONS)
+                if counter == 1:
+                    messagebox.showinfo(cs.DIALOG_TITLE_GENERAL, cs.INSTRUCTIONS)
+
                 window.set_foreground()
-                cv2.waitKey()
+                #cv2.waitKey()
                 last = {counter: [cx, cy]}
                 keys.append(counter)
 
-            #cx, cy, area, cnt = uF.find_center(results[WE.resImg.value])
-            cx, cy, area = uF.find_center(results[WE.resImg.value])
+            cx, cy, area, cnt = uF.find_center(results[WE.resImg.value])
 
-            # if cx == 0 and cy == 0 and area == 0 and cnt == 0:
-            #     waiting = True
-            #
-            # if isinstance(cnt, np.ndarray):
-            #     if len(cnt) > 5:
-            #         ellipse = cv2.fitEllipse(cnt)
-            #         (elx, ely), (MA, ma), angle = cv2.fitEllipse(cnt)
-            #         ea = math.pi/4*ma*MA
-            #         ellipse_area.append(ea)
-            #         # print(max(MA, ma)/min(MA, ma), angle)
-            #         cv2.ellipse(results[WE.source.value], ellipse, (0, 255, 0), 2)
-            #         cv2.imshow(WE.source.name, results[WE.source.value])
-            #
-            #         if ea > 6200 or ea < 200:
-            #             waiting = True
+            if cx == 0 and cy == 0 and area == 0 and cnt == 0:
+                waiting = True
 
-            if waiting:
+            if isinstance(cnt, np.ndarray):
+                if len(cnt) > 5:
+                    ellipse = cv2.fitEllipse(cnt)
+                    (elx, ely), (MA, ma), angle = cv2.fitEllipse(cnt)
+                    ea = math.pi/4*ma*MA
+                    ellipse_area.append(ea)
+                    # print(max(MA, ma)/min(MA, ma), angle)
+                    cv2.ellipse(results[WE.source.value], ellipse, (0, 255, 0), 2)
+                    cv2.imshow(WE.source.name, results[WE.source.value])
+
+                    if ea > 6200 or ea < 200:
+                        waiting = True
+
+            if waiting and not ch == 27:
                 ch = 32
             else:
                 last[counter] = [(cx + cv2.getTrackbarPos('x0', WE.set.name)),
@@ -357,6 +364,11 @@ while not flExit:
         if ch == 27:
             if messagebox.askokcancel(cs.DIALOG_TITLE_GENERAL, cs.DIALOG_TEXT_EXIT):
                 flExit = True
+            elif not ret:
+                cap.set(cv2.CAP_PROP_POS_FRAMES, 1)
+                ret, img = cap.read()
+                counter = 2
+                start = True
             else:
                 window.set_foreground()
 
