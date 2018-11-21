@@ -151,6 +151,7 @@ def frame_exec():
 root = tk.Tk()
 root.withdraw()
 
+
 fOptions = open(cs.FILE_OPTIONS_FOLDER, 'r')
 topt = {}
 line = fOptions.readline()
@@ -379,7 +380,25 @@ while not flExit:
             #track, plot = uF.print_trace(trace, last, (opt['bL'], opt['gL'], opt['rL']))
             #track = uF.print_trace(trace, last, (opt['bL'], opt['gL'], opt['rL']))
             cv2.imshow(WE.track.name, track)
-            ch = cv2.waitKey()
+            
+            ch = cv2.waitKeyEx()
+            print (ch)
+
+            while ch == 2555904 or ch == 2424832:
+                t = 0
+
+                # -> 2555904
+                if ch == 2555904:
+                    t = cv2.getTrackbarPos('FrameDelta', WE.set.name)
+
+                # <- 2424832
+                elif ch == 2424832:
+                    t = -cv2.getTrackbarPos('FrameDelta', WE.set.name)
+
+                pos = cv2.getTrackbarPos('Frame', WE.set.name) + t
+                cv2.setTrackbarPos('Frame', WE.set.name, pos)
+                ch = cv2.waitKeyEx()
+                print(ch)
 
             if ch == 27:
                 if messagebox.askokcancel(cs.DIALOG_TITLE_GENERAL, cs.DIALOG_TEXT_EXIT):
