@@ -1,2 +1,2 @@
-python VideoFilterParams.py
+python main.py
 PAUSE

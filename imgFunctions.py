@@ -26,7 +26,9 @@ def img_cut(img, settings):
     w = cv2.getTrackbarPos('width', settings)
     y = cv2.getTrackbarPos('y0', settings)
     h = cv2.getTrackbarPos('height', settings)
-    return img[x:x + w, y:y + h]
+    # return img[x:x + w, y:y + h]
+    return img[y:y + h, x:x + w]
+
 
 
 def circleIf(newobj, old, color, maxjump, img):
