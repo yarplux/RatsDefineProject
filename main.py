@@ -1,5 +1,6 @@
 import cv2
 from random import randrange
+from multiprocessing import Process
 
 import os
 import numpy as np
@@ -10,17 +11,17 @@ from tkinter import messagebox
 import math
 
 import shutil
-from WindowMgr import WindowMgr
+#from winMgr import WindowMgr
 
 import imgFunctions as imgF
+# import onChgFunctions as ocF
 import constants as cs
 import config as cfg
-import onChgFunctions as ocF
 
 # ИЦИНИАЛИЗАЦИЯ
 # ---------------------------------------------------------------------------------------------------------------
-
 tk.Tk().withdraw()
+cfg.init_options()
 
 # Для установки активного окна
 # (выводить на передний план после диалогов, чтобы приложение реагировало на нажатие кнопок)
@@ -39,13 +40,12 @@ for win in cfg.WE:
     cv2.namedWindow(win.name)
     cv2.setMouseCallback(win.name, ocF.chs_obj)
     cv2.moveWindow(win.name, xw, yw)
-    cv2.resizeWindow(win.name, cfg.opt['winW0']-20, cfg.opt['winH0'])
+    cv2.resizeWindow(win.name, cfg.opt['winW0'], cfg.opt['winH0'])
     numx += 1
 
     if "set" in win.name:
-        cv2.createTrackbar('delay', win.name, cfg.opt['delay'], cfg.opt['delay_Max'], ocF.on_chg_delay)
+        cv2.createTrackbar('delay', win.name, cfg.opt['delay'], cfg.opt['delay_Max'], ocF.f)
         cv2.setTrackbarMin('delay', win.name, 1)
-        cfg.delay = cfg.opt['delay']
 
         cv2.createTrackbar('FrameDelta', win.name, cfg.opt['FrameDelta'], cfg.opt['FrameDelta_Max'], ocF.f)
         cv2.setTrackbarMin('FrameDelta', win.name, 1)
@@ -53,21 +53,19 @@ for win in cfg.WE:
         # 4 бегунка для настройки позиций обрезки кадра
         cv2.createTrackbar('x0', win.name, cfg.opt['x0'], cfg.opt['x0_Max'],
                            lambda x: ocF.on_chg_size('x0', cfg.cxd - x))
-        cfg.cxd = cfg.opt['x0']
 
         cv2.createTrackbar('width', win.name, cfg.opt['width'], cfg.opt['width' + '_Max'],
                            lambda x: ocF.on_chg_size('width', 0))
 
         cv2.createTrackbar('y0', win.name, cfg.opt['y0'], cfg.opt['y0_Max'],
                            lambda y: ocF.on_chg_size('y0', cfg.cyd - y))
-        cfg.cyd = cfg.opt['y0']
 
         cv2.createTrackbar('height', win.name, cfg.opt['height'], cfg.opt['height' + '_Max'],
                            lambda x: ocF.on_chg_size('height', 0))
 
         # 6 бегунков для настройки начального и конечного цвета фильтра
-        for n in ['h1', 'h2', 's1', 's2', 'v1', 'v2']:
-            if n[:1] == 'h':
+        for n in ['filter_h1', 'filter_h2', 'filter_s1', 'filter_s2', 'filter_v1', 'filter_v2']:
+            if n.__contains__("h"):
                 size = 179
             else:
                 size = 255
@@ -82,6 +80,7 @@ window.find_window_wildcard("source")
 # ---------------------------------------------------------------------------------------------------------------
 
 flExit = False
+
 # Цикл прокрутки видео заново по кругу до выхода
 while not flExit:
 
@@ -93,7 +92,6 @@ while not flExit:
     time_length = int(cfg.cap.get(cv2.CAP_PROP_FRAME_COUNT)/cfg.opt['FPS'])
 
 #   cv2.createTrackbar('Moment', cfg.WE.source.name, 120, 240, on_chg_s)
-
     print('Opened video: ' + cfg.video_name
           + '\nVideo Length (from OpenCV and def FPS): '
           + str(time_length // 3600)
@@ -111,7 +109,6 @@ while not flExit:
     track = cfg.trace = np.zeros((cfg.h, cfg.w, 3), np.uint8)
 
     cfg.counter = 0
-
     cfg.cx = 0
     cfg.cy = 0
 
@@ -181,7 +178,7 @@ while not flExit:
                 ch = 32
             else:
                 cfg.last[cfg.counter] = [(cfg.cx + cv2.getTrackbarPos('x0', cfg.WE.set.name)),
-                                     (cfg.cy + cv2.getTrackbarPos('y0', cfg.WE.set.name))]
+                                         (cfg.cy + cv2.getTrackbarPos('y0', cfg.WE.set.name))]
 
                 keys.append(cfg.counter)
 
@@ -189,7 +186,8 @@ while not flExit:
                     p2 = cfg.last[keys[-1]]
                     p1 = cfg.last[keys[-2]]
 #                   cfg.trace = cfg.results[cfg.WE.plot.value]
-                    cv2.line(cfg.trace, (p1[0], p1[1]), (p2[0], p2[1]), (cfg.opt['bT'], cfg.opt['gT'], cfg.opt['rT']), 1)
+                    cv2.line(cfg.trace, (p1[0], p1[1]), (p2[0], p2[1]),
+                             (cfg.opt['bT'], cfg.opt['gT'], cfg.opt['rT']), 1)
 
                 cv2.imshow(cfg.WE.track.name, cfg.trace)
 
@@ -198,7 +196,7 @@ while not flExit:
             raise
 
         if not cfg.waiting:
-            ch = cv2.waitKey(cfg.delay)
+            ch = cv2.waitKey(cv2.getTrackbarPos('delay', cfg.WE.set.name))
 
 #       32 - пробел, 27 - esc
         if ch == 27:
@@ -248,7 +246,7 @@ while not flExit:
 
     cfg.cap.release()
 
-fOptions = open('dir_options.txt', 'w')
+fOptions = open('general_options.txt', 'w')
 for key in cfg.topt.keys():
     fOptions.write('#\n'+key + " " + str(cfg.topt[key]) + '\n\n')
 fOptions.close()
@@ -257,10 +255,11 @@ if messagebox.askyesno(cs.DIALOG_TITLE_GENERAL, cs.DIALOG_TEXT_SAVE_TRACK):
     if not os.path.exists(cfg.track_dir):
         os.makedirs(cfg.track_dir)
     ind = str(randrange(10000))
-    trackname = cfg.track_dir + 'track_'\
-                            + cfg.video_name[cfg.video_name.rfind('/')+1:-4] \
-                            + '_' \
-                            + ind+'.png'
+    trackname = cfg.track_dir\
+                + 'track_'\
+                + cfg.video_name[cfg.video_name.rfind('/')+1:-4] \
+                + '_' \
+                + ind+'.png'
 
     retval = cv2.imwrite(trackname, cfg.trace)
     print('Track file:', trackname, 'saved' if retval else 'UNSAVED!')

@@ -2,6 +2,9 @@ import cv2
 import numpy as np
 import math
 
+import config as cfg
+
+
 # Функция создания чистого чёрного полотна для траектории
 def initPath ( img ):
     h, w = img.shape[:2]
@@ -21,11 +24,11 @@ def dist(p1, p2):
 
 
 # Функция обрезки картинки
-def img_cut(img, settings):
-    x = cv2.getTrackbarPos('x0', settings)
-    w = cv2.getTrackbarPos('width', settings)
-    y = cv2.getTrackbarPos('y0', settings)
-    h = cv2.getTrackbarPos('height', settings)
+def img_cut(img):
+    y = cfg.opt_size['y0']
+    x = cfg.opt_size['x0']
+    h = cfg.opt_size['height']
+    w = cfg.opt_size['width']
     # return img[x:x + w, y:y + h]
     return img[y:y + h, x:x + w]
 
@@ -76,11 +79,8 @@ def find_center(img):
     return (0,0,0,0)
 
 
-
-
-
 # Функция обработки изображения по данному фильтру
-def img_filter(img, window):
+def img_filter(img):
 
     # Размытие
     blurGauss = cv2.GaussianBlur(img, (3, 3), 0)
@@ -89,12 +89,12 @@ def img_filter(img, window):
     imgHsv = cv2.cvtColor(blurGauss, cv2.COLOR_BGR2HSV)
 
     # Получение данных с движков настройки
-    h1 = cv2.getTrackbarPos('h1', window)
-    s1 = cv2.getTrackbarPos('s1', window)
-    v1 = cv2.getTrackbarPos('v1', window)
-    h2 = cv2.getTrackbarPos('h2', window)
-    s2 = cv2.getTrackbarPos('s2', window)
-    v2 = cv2.getTrackbarPos('v2', window)
+    h1 = cfg.opt_filters['h1']
+    s1 = cfg.opt_filters['s1']
+    v1 = cfg.opt_filters['v1']
+    h2 = cfg.opt_filters['h2']
+    s2 = cfg.opt_filters['s2']
+    v2 = cfg.opt_filters['v2']
 
     # формируем начальный и конечный цвет фильтра
     colHSV_Min = np.array((h1, s1, v1), np.uint8)

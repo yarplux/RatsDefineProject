@@ -3,83 +3,112 @@ from enum import Enum
 import numpy as np
 import os
 
-import tkinter as tk
 from tkinter import filedialog
 from tkinter import messagebox
 
 import constants as cs
 
+
 # Глобальные переменные (инициализация)
 # ---------------------------------------------------------------------------------------------------------------
-class WE(Enum):
-    # TODO добавить plot - для построения графика
-    source, resImg, set, track = range(4)
-
-
-tk.Tk().withdraw()
-
 
 cx = 0                      # global mouse/track x position
-cxd = 0                     # global track x position change by trackbar
 cy = 0                      # global mouse/track x position
-cyd = 0                     # global track x position change by trackbar
-delay = 0
-drawing = False             # true if mouse is pressed
-waiting = False             # true if waitKey()
-
-counter = 0                 # number of current frame
-
-h = 0                       # global height of input img
-w = 0                       # global width of input img
-
-results = [np.zeros((h, w, 3), np.uint8) for i in WE]
-cap = cv2.VideoCapture()
-trace = np.zeros((h, w, 3), np.uint8)
+rx0 = 0
+ry0 = 0
+rx1 = -1
+ry1 = -1
 
 last = {}
-opt = {}                    # list of input options
-actions = list()            # list of default actions of rats
+opt = {}                    # dictionary of input options
+opt_filters = {}            # dict of filter options
+opt_size = {}              # dict of window size options
+opt_process = {}               # video play options
+
+actions = {}                # list of default actions of rats
+exclude = list()            # list of unchangeable from program interface options
+labels = {}                 # dictionary of labels to sliders for options
+topt = {}
+video_name = ''
+options_name = ''
+options_dir = ''
+track_dir = ''
+
 
 # Инициализация опций программы (подгрузка из файла)
 # ---------------------------------------------------------------------------------------------------------------
-fOptions = open(cs.FILE_OPTIONS_FOLDER, 'r')
-topt = {}
-line = fOptions.readline()
-while line:
-    if line[0] != '#' and line != "\n":
-        topt[line[:line.find(' ')]] = line[line.find(' '):]
-    line = fOptions.readline()
-fOptions.close()
+def init_gen_options():
+    global opt_process, actions, labels, topt
 
-print('Last video folder:', topt['last_video'])
-video_name = filedialog.askopenfilename(initialdir=topt['last_video'],
-                                        title=cs.DIALOG_TITLE_OPEN_VIDEO,
-                                        filetypes=(("video files", "*.avi *.mp4"), ("all files", "*.*")))
+    file_options = open(cs.FILE_OPTIONS_FOLDER, 'r')
+    line = file_options.readline()
+    while line:
+        if line[0] != '#' and line != "\n":
+            line = line.replace('\n', '')
+            words = line.split(' ')
+            if words[0] == 'action':
+                actions[len(actions)] = line[len('action')+1:]
+            elif words[0] == 'process':
+                opt_process[words[1]] = int(words[2])
+                if len(words) > 3:
+                    labels[words[1]] = line[len(words[1]) + len(words[2]) + len('process')+3:]
+            else:
+                topt[words[0]] = line[len(words[0])+1:]
+        line = file_options.readline()
+    file_options.close()
 
-topt['last_video'] = video_name[:video_name.rfind('/')]
 
-if video_name == '':
-    messagebox.showinfo(cs.DIALOG_TITLE_GENERAL, cs.DIALOG_TEXT_ERROR_OPEN_FILE)
-    exit()
+def init_options():
+    global opt, opt_filters, opt_size, opt_process, actions, exclude, labels, topt, \
+        video_name, options_name, options_dir, track_dir
 
-options_dir = video_name[:video_name.rfind('/')] + cs.DIR_OPTIONS[1:]
-track_dir = video_name[:video_name.rfind('/')] + cs.DIR_TRACKS
+    print('Last video folder:', topt['last_video'])
+    video_name = filedialog.askopenfilename(initialdir=topt['last_video'],
+                                            title=cs.DIALOG_TITLE_OPEN_VIDEO,
+                                            filetypes=(("video files", "*.avi *.mp4"), ("all files", "*.*")))
 
-options_name = options_dir + '/options_' + video_name[video_name.rfind('/')+1:-4] + '.txt'
-if not (os.path.exists(options_dir) and os.path.isfile(options_name)):
+    topt['last_video'] = video_name[:video_name.rfind('/')]
+
+    if video_name == '':
+        messagebox.showinfo(cs.DIALOG_TITLE_GENERAL, cs.DIALOG_TEXT_ERROR_OPEN_FILE)
+        return False
+
+    options_dir = video_name[:video_name.rfind('/')] + cs.DIR_OPTIONS[1:]
+    track_dir = video_name[:video_name.rfind('/')] + cs.DIR_TRACKS
+
+    options_name = options_dir + '/options_' + video_name[video_name.rfind('/') + 1:-4] + '.txt'
+    if not (os.path.exists(options_dir) and os.path.isfile(options_name)):
         options_name = cs.FILE_OPTIONS_DEFAULT
 
+    file_options = open(options_name, 'r')
+    line = file_options.readline()
+    while line:
+        if line[0] != '#' and line != "\n":
+            line = line.replace('\n', '')
+            words = line.split(' ')
+            if words[0] == "exclude":
+                for i in range(1, len(words)):
+                    exclude.append(words[i])
+            elif words[0] == "filter":
+                opt_filters[words[1]] = int(words[2])
+                if len(words) > 3:
+                    labels[words[1]] = line[len(words[1]) + len(words[2]) + 9:]
+            elif words[0] == "size":
+                opt_size[words[1]] = int(words[2])
+                if len(words) > 3:
+                    labels[words[1]] = line[len(words[1])+len(words[2])+7:]
+            elif words[1].isnumeric():
+                opt[words[0]] = int(words[1])
+                if len(words) > 2:
+                    labels[words[0]] = line[len(words[0])+len(words[1])+2:]
+        line = file_options.readline()
+    file_options.close()
 
-fOptions = open(options_name, 'r')
-line = fOptions.readline()
-while line:
-    if line[0] != '#' and line != "\n":
-        line = line.replace('\n', '')
-        words = line.split(' ')
-        # words[1] = words[1].replace('\n', '')
-        if words[0] == "action":
-            actions.append(line[7:])
-        elif words[1].isnumeric():
-            opt[words[0]] = int(words[1])
-    line = fOptions.readline()
-fOptions.close()
+    # print("Labels:", labels)
+    # print("Filters:", opt_filters)
+    # print("Process:", opt_process)
+    # print("WinSize:", opt_size)
+    # print("Actions:", actions)
+    # print("Excluded options: ", exclude)
+    # print("Other options: ", opt)
+    return True

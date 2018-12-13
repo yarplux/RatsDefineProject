@@ -118,3 +118,8 @@ gen
 tracks/
 videos/
 news.txt
+
+/desktop.ini
+# Old files. To check something
+/main.py
+

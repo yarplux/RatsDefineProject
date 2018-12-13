@@ -1,5 +1,5 @@
 
-FILE_OPTIONS_FOLDER = './dir_options.txt'
+FILE_OPTIONS_FOLDER = './general_options.txt'
 FILE_OPTIONS_DEFAULT = './options.txt'
 
 DIALOG_TITLE_OPEN_VIDEO = 'Выберете файл видео'
@@ -8,10 +8,12 @@ DIALOG_TITLE_GENERAL = 'Обработка'
 DIALOG_TEXT_ERROR_OPEN_FILE = 'Для работа необходимо выбрать файл!'
 
 DIALOG_TEXT_EXIT = 'Вы действительно хотите выйти?'
+DIALOG_TEXT_ANOTHER = 'Вы хотите выбрать другой файл?'
 
 DIALOG_TEXT_SAVE_TRACK = 'Cохранить текущий трек?'
-DIALOG_TEXT_SAVE_OPTIONS = 'Cохранить текущие настройки обработки?'
-DIALOG_TEXT_SAVE_OPTIONS_DEFAULT = 'Сохранить как настройки по-умолчанию?'
+DIALOG_TEXT_SAVE_OPTIONS = 'Cохранить текущие настройки обработки видео?'
+DIALOG_TEXT_SAVE_GENERAL = 'Cохранить текущие общие настройки ( + текущий список движений)?'
+DIALOG_TEXT_SAVE_OPTIONS_DEFAULT = 'Сохранить как настройки обработки по-умолчанию?'
 
 DIR_OPTIONS = './options'
 DIR_TRACKS = './tracks'
@@ -27,4 +29,3 @@ INSTRUCTIONS = 'Для начала:\n' + \
  'В режиме паузы: \n' +\
 'Стрелка вправо на клавиатуре - перемотка вперёд со скоростью движка FrameDelta' + \
 'Стрелка влево на клавиатуре - перемотка назад со скоростью движка FrameDelta'
-

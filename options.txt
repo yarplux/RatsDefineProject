@@ -1,4 +1,7 @@
 #
+exclude win Max FPS SpeedDelta maxjump rT gT bT rL gL bL
+
+#
 winX0 20
 
 #
@@ -11,40 +14,28 @@ winW0 350
 winH0 300
 
 #
-x0 69
+size x0 69 Обрезка слева
 
 #
-x0_Max 120
+size x0_Max 120
 
 #
-width 196
+size width 196 Ширина
 
 #
-width_Max 300
+size width_Max 300
 
 #
-y0 19
+size y0 19 Обрезка сверху
 
 #
-y0_Max 120
+size y0_Max 120
 
 #
-height 191
+size height 191 Высота
 
 #
-height_Max 300
-
-#
-delay 1
-
-#
-delay_Max 1000
-
-#
-FrameDelta 1
-
-#
-FrameDelta_Max 10
+size height_Max 300
 
 #
 FPS 10
@@ -53,22 +44,40 @@ FPS 10
 SpeedDelta 10
 
 #
-h1 0
+filter h1 0 Фильтр тона (мин)
 
 #
-h2 179
+filter h1_Max 179
 
 #
-s1 0
+filter h2 179 Фильтр тона (макс)
 
 #
-s2 255
+filter h2_Max 179
 
 #
-v1 243
+filter s1 0 Фильтр насыщенности (мин)
 
 #
-v2 255
+filter s1_Max 255
+
+#
+filter s2 255 Фильтр насыщенности (макс)
+
+#
+filter s2_Max 255
+
+#
+filter v1 243 Фильтр яркости (мин)
+
+#
+filter v1_Max 255
+
+#
+filter v2 255 Фильтр яркости (макс)
+
+#
+filter v2_Max 255
 
 #
 maxjump 100

@@ -1,0 +1,24 @@
+#
+last_video 
+
+#
+process delay 500 Задержка кадров (в мс)
+
+#
+process delay_Max 500
+
+#
+process FrameDelta 10 Cледующий кадр
+
+#
+process FrameDelta_Max 10
+
+#
+action Сидит, шебуршится
+
+#
+action Бегает
+
+#
+action Спит
+
