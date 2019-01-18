@@ -1,17 +1,5 @@
 #
-exclude win Max FPS SpeedDelta maxjump rT gT bT rL gL bL
-
-#
-winX0 20
-
-#
-winY0 20
-
-#
-winW0 350
-
-#
-winH0 300
+exclude Max FPS SpeedDelta maxjump rT gT bT rL gL bL
 
 #
 size x0 69 Обрезка слева

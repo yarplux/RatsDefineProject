@@ -12,6 +12,7 @@ import constants as cs
 import config as cfg
 import imgFunctions as imgF
 
+from panels_menu import Win, WinHelp
 
 #
 # Widget wrapper classes ===============================================================================================
@@ -69,46 +70,16 @@ class MyButton(object):
     def __init__(self, my_parent, my_text, my_callback, side):
         self.function = my_callback
         self.name = my_text
-        self.button = tk.Button(my_parent, text=my_text, padx=3, command=self.callback)
-        self.button.pack(side=side)
+        self.button = tk.Button(my_parent, text=my_text, bd=1, relief=tk.FLAT, command=self.callback)
+        self.button.pack(side=side, pady=3, padx=5)
 
     def callback(self):
         self.function(self.name, self.button)
 
 
 #
-# Window wrapper classes ===============================================================================================
+# Video wrapper classes ================================================================================================
 #
-class Win:
-    def __init__(self, window, window_title, maximize):
-        self.window = window
-        self.window.title(window_title)
-        if maximize:
-            self.window.state("zoomed")
-        else:
-            self.window.resizable(False, False)
-        self.window.protocol("WM_DELETE_WINDOW", self.quit)
-
-    def quit(self):
-        self.window.destroy()
-
-
-class WinHelp(Win):
-    def __init__(self, window, window_title, widget):
-        Win.__init__(self, window, window_title, False)
-        self.widget = widget
-        self.widget.config(state='disabled')
-
-        self.T = tk.Text(self.window, width=85, height=15)
-        self.T.pack()
-        self.T.insert(tk.END, cs.INSTRUCTIONS)
-        self.window.mainloop()
-
-    def quit(self):
-        self.widget.config(state='active')
-        Win.quit(self)
-
-
 class MyVideo:
     vid = cv2.VideoCapture()
     counter = 0
@@ -159,15 +130,27 @@ class MyVideo:
 # MAIN WINDOW CLASS ====================================================================================================
 #
 class MainWindow(Win):
-    sliders = {}
-    lines = {}
-    tc = list()
-    ti = list()
+    sliders = {}            # settings sliders list
+    lines = {}              # actions frames list
+    # tc = list()           # time canvas list
 
-    active, paused, settings_state, settings_gen_state = True, True, True, True
-    drawing, choosing = False, False
-    tr, si, fi = None, None, None
+    active = True           # state of active update function
+    paused = True           # state of catching new video frames in update function
+    ss = True               # state of saved video settings
+    sgs = True              # state of saved general settings
+    drawing = False         # state of changing rat center place
+    choosing = False        # state of defining areas
 
+    started = False         # state of started action
+
+    tr = [0]*6              # list, defininng time zone rectangle
+    ti = [None]*2           # time start/end image list
+
+    si = None               # temp source image
+    fi = None               # temp filtered image
+
+    ca = None               # current action
+    cc = None               # current category of chosing area
 
 #
 # Initialization________________________________________________________________________________________________________
@@ -180,13 +163,13 @@ class MainWindow(Win):
             if not messagebox.askyesno(cs.DIALOG_TITLE_OPEN_VIDEO, cs.DIALOG_TEXT_ANOTHER):
                 exit()
 
+        self.ca = tk.StringVar()  # current action
+
         self.window.focus_force()
-        self.window.bind('<space>', self.pause)
-        self.window.bind('<Escape>', self.my_exit)
 
         # Init Main Menu
         self.frame_menu = tk.Frame(self.window)
-        self.frame_menu.pack(fill=tk.X, side=tk.TOP, padx=3, pady=3)
+        self.frame_menu.pack(fill=tk.X, side=tk.TOP, pady=5)
 
         self.menu = ['Помощь', 'Открыть другое видео', 'Сохранить общие настройки', 'Сохранить настройки видео']
         self.menu_functions = [self.help, self.reload, self.save_gen_settings, self.save_settings]
@@ -196,14 +179,10 @@ class MainWindow(Win):
             if self.menu[i].__contains__('Сохранить'):
                 self.frame_menu.winfo_children()[i].config(state='disabled')
 
-        tk.Frame(self.window, bg='black').pack(fill=tk.X, side=tk.TOP)
 
         # Init Settings
-        self.frame_settings = tk.Frame(self.window)
+        self.frame_settings = tk.Frame(self.window, bd=1, relief=tk.SOLID)
         self.frame_settings.pack(fill=tk.Y, side=tk.RIGHT)
-
-        frame = tk.Frame(self.frame_settings, bg="black")
-        frame.pack(fill=tk.Y, pady=5, side=tk.LEFT)
 
         self.init_slider(cfg.opt_process, 1, self.ch_proc)
         tk.Frame(self.frame_settings, height=2, bg="black").pack(fill=tk.X, pady=5)
@@ -217,23 +196,23 @@ class MainWindow(Win):
         tk.Label(self.frame_settings, text="Выбор областей:", font=("Helvetica", 16, 'bold')).pack()
 
         self.MODES = ['Время', 'Кормушка', 'Поилка', 'Центр']
-
-        v = tk.StringVar()
-        v.set(0)
+        self.cc = tk.StringVar()
+        self.cc.set(0)
 
         for text in self.MODES:
-            b = tk.Radiobutton(self.frame_settings, text=text, variable=v, value=self.MODES.index(text), indicatoron=0)
-            b.pack(anchor=tk.W, fill=tk.X, padx=10, pady=3)
+            b = tk.Radiobutton(self.frame_settings, text=text, variable=self.cc, value=self.MODES.index(text), indicatoron=0)
+            b.pack(fill=tk.X, padx=10, pady=3)
 
-        tk.Button(self.frame_settings, text="Зафиксировать", command=lambda ind=int(v.get()): self.choose_area(ind))\
-            .pack(side=tk.LEFT, fill=tk.X, padx=10, pady=10)
+        tk.Button(self.frame_settings, text="Зафиксировать", command=lambda ind=self.cc: self.choose_area(ind))\
+            .pack(fill=tk.X, padx=10, pady=10)
 
         # Init Video Frame
         self.vid = MyVideo(cfg.video_name)
 
         # Create a canvas that can fit the above video source size
-        self.frame_main = tk.Frame(self.window)
-        self.frame_main.pack(side=tk.TOP)
+
+        self.frame_main = tk.Frame(self.window, bd=1, relief=tk.SOLID)
+        self.frame_main.pack()
 
         self.canvas_source = tk.Canvas(self.frame_main, width=self.vid.width, height=self.vid.height)
         self.canvas_filtered = tk.Canvas(self.frame_main, width=self.vid.width, height=self.vid.height)
@@ -247,29 +226,65 @@ class MainWindow(Win):
         self.canvas_source.bind('<ButtonPress-3>', self.choose_start)
         self.canvas_source.bind('<B3-Motion>', self.choose)
 
-        frame = tk.Frame(self.window)
-        frame.pack(fill=tk.X)
-        self.slider = tk.Scale(frame, label='Текущий кадр',
+        self.slider = tk.Scale(self.window, label='Текущий кадр',
                                from_=1, to=self.vid.length, orient=tk.HORIZONTAL,
                                command=lambda x, flag=self.paused: self.vid.set_frame(int(x), flag))
 
         self.slider.pack(fill=tk.X)
-        tk.Frame(frame, bg="black").pack(fill=tk.X, pady=5)
+        tk.Frame(self.window, bg="black").pack(fill=tk.X, pady=5)
 
         cfg.cx = 0
         cfg.cy = 0
 
         # Init Actions
-        frame.pack(side=tk.LEFT, fill=tk.Y)
-        self.frame_actions = tk.Frame(frame)
-        self.frame_actions.pack(side=tk.TOP)
+        self.ca.set(-1)
+        self.ca.trace("w", lambda name, k, mode, sv=self.ca: self.action_start(sv))
 
-        tk.Button(self.frame_actions, text="Новое действие", command=self.action_create).pack(side=tk.TOP)
+        self.frame_actions = tk.Frame(self.window)
+        self.frame_actions.pack(anchor=tk.NW, side=tk.LEFT)
+
+        frame = tk.Frame(self.frame_actions)
+        frame.pack(anchor=tk.NW)
+        tk.Button(frame, text='Stop (s)', font='Helvetica 16 bold', fg='red', command=lambda sv=self.ca: self.action_stop(sv)).pack(side=tk.LEFT, padx=3, pady=3)
+        tk.Button(frame, text='Новое действие', command=self.action_create).pack(side=tk.LEFT, padx=3, pady=3)
 
         for i in cfg.actions.keys():
             self.lines[i] = tk.Frame(self.frame_actions)
-            self.lines[i].pack(side=tk.BOTTOM)
+            self.lines[i].pack()
             self.action_init(i)
+
+        # flat, groove, raised, ridge, solid, or sunken
+        self.frame_time = tk.Frame(self.window, bd=2, relief=tk.RAISED)
+
+        # self.frame_time.pack()
+        tk.Canvas(self.frame_time, bg='black').pack(anchor=tk.N)
+        tk.Entry(self.frame_time, font="Helvetica 14").pack(anchor=tk.N)
+        tk.Canvas(self.frame_time, bg='black').pack(anchor=tk.N)
+        tk.Entry(self.frame_time, font="Helvetica 14").pack(anchor=tk.N)
+        tk.Button(self.frame_time, text='В отчёт', font='Helvetica 16 bold', fg='red', command=lambda sv=self.ca: self.action_write(sv)).pack(anchor=tk.N)
+
+        # TEST
+        self.tr = cs.TIME_AREA
+        for i in [0, 2]:
+            self.frame_time.winfo_children()[i].config(width=self.tr[4], height=self.tr[5])
+        self.ti[0] = PIL.ImageTk.PhotoImage(image=PIL.Image.fromarray(MyVideo.frame.copy())
+                                                .crop(tuple(self.tr[0:4]))
+                                                .resize(tuple(self.tr[4:])))
+        self.frame_time.pack()
+
+        self.window.bind('<space>', self.pause)
+        self.window.bind('<Escape>', self.my_exit)
+        self.window.bind('<s>', lambda event, sv=self.ca: self.action_stop(sv))
+        self.window.bind('<Left>', self.left)
+        self.window.bind('<Right>', self.right)
+        self.window.bind('<Button-1>', self.unfocus)
+        self.window.bind('<Button-3>', self.unfocus)
+        self.window.bind('<Key>', self.action_start_but)
+        self.window.bind('<Return>', self.enter)
+
+        # for widget in self.window.winfo_children():
+        #     widget.config(bd=10, relief=tk.SUNKEN)
+        #     print(widget)
 
         self.update()
         self.window.mainloop()
@@ -278,30 +293,27 @@ class MainWindow(Win):
 # Settings functions____________________________________________________________________________________________________
 #
     def new_settings(self):
-        self.settings_state = False
+        self.ss = False
         i = self.menu_functions.index(self.save_settings)
         self.frame_menu.winfo_children()[i].config(state='active')
 
     def new_gen_settings(self):
-        self.settings_gen_state = False
+        self.sgs = False
         i = self.menu_functions.index(self.save_gen_settings)
         self.frame_menu.winfo_children()[i].config(state='active')
 
     def save_gen_settings(self, name=None, widget=None):
-        self.settings_gen_state = True
+        self.sgs = True
         i = self.menu_functions.index(self.save_gen_settings)
         self.frame_menu.winfo_children()[i].config(state='disabled')
 
         f_options = open('general_options.txt', 'w')
-        for key in cfg.topt.keys():
-            f_options.write('#\n' + key + " " + str(cfg.topt[key]) + '\n\n')
-
         self.save_dict(f_options, cfg.opt_process, 'process')
         self.save_dict(f_options, cfg.actions, 'action', False, False)
         f_options.close()
 
     def save_settings(self, name=None, widget=None):
-        self.settings_state = True
+        self.ss = True
         i = self.menu_functions.index(self.save_settings)
         self.frame_menu.winfo_children()[i].config(state='disabled')
 
@@ -348,35 +360,96 @@ class MainWindow(Win):
             self.vid = MyVideo(cfg.video_name)
             self.slider.set(1)
 
-            print(self.vid, MyVideo.counter)
         self.active = True
 
     def help(self, name, widget):
         WinHelp(tk.Toplevel(self.window), name, widget)
 
-    def pause(self, event):
-        self.paused = not self.paused
-        print("Paused state changed to:"+str(self.paused))
+    def choose_area(self, event_type):
+        tx, ty = cfg.opt_size['x0'], cfg.opt_size['y0']
+        x0, x1 = min(cfg.rx0, cfg.rx1) + tx, max(cfg.rx1, cfg.rx0) + tx
+        y0, y1 = min(cfg.ry0, cfg.ry1) + ty, max(cfg.ry1, cfg.ry0) + ty
+
+        if int(event_type.get()) == 0 and all([x0, y0, x1 - x0, y1 - y0]) > 0:
+            # if y0 - ty < 5:
+            #     y0 = 0  # время обычно выставлено сверху
+            # для компенсации рамки в 2 пиксела
+            y0-=2
+            y1+=2
+
+            # TODO в константы
+            h = 50
+            w = int((x1-x0)*h/(y1-y0))
+
+            for i in [0, 2]:
+                self.frame_time.winfo_children()[i].config(width=w, height=h)
+
+            self.tr = [x0, y0, x1, y1, w, h]
+            print(self.tr)
+
+            self.choosing = False
+
+            cfg.rx0, cfg.ry0, cfg.rx1, cfg.ry1 = 0, 0, 0, 0
+            self.frame_time.pack(anchor=tk.NE, side=tk.RIGHT)
 
 #
 # Event keyboard and mouse functions____________________________________________________________________________________
 #
+    def enter(self, event):
+        print(event.widget)
+        if event.widget == self.frame_time.winfo_children()[1]:
+            self.frame_time.winfo_children()[3].focus()
+        elif event.widget == self.frame_time.winfo_children()[3]:
+            self.action_write(self.ca)
+
+    def action_start_but(self, event):
+        if not isinstance(event.widget, tk.Entry):
+            try:
+                self.ca.set(int(event.char)-1)
+            except:
+                return
+
+    def pause(self, event):
+        if not isinstance(event.widget, tk.Entry) and not isinstance(event.widget, tk.Button):
+            self.paused = not self.paused
+
+    def unfocus(self, event):
+        if not isinstance(event.widget, tk.Entry):
+            self.window.focus()
+
+    def left(self, event):
+        if MyVideo.counter > 0:
+            x = MyVideo.counter
+            d = cfg.opt_process['FrameDelta']
+            self.slider.set(x-d)
+
+    def right(self, event):
+        if MyVideo.counter < self.vid.length:
+            x = MyVideo.counter
+            d = cfg.opt_process['FrameDelta']
+            self.slider.set(x+d)
+
     def my_exit(self, event):
         if messagebox.askokcancel(cs.DIALOG_TITLE_GENERAL, cs.DIALOG_TEXT_EXIT):
 
-            if not self.settings_gen_state:
+            if not self.sgs:
                 confirm = messagebox.askyesnocancel(cs.DIALOG_TITLE_GENERAL, cs.DIALOG_TEXT_SAVE_GENERAL)
                 if confirm:
                     self.save_gen_settings()
                 elif confirm is None:
                     return
 
-            if not self.settings_state:
+            if not self.ss:
                 confirm = messagebox.askyesnocancel(cs.DIALOG_TITLE_GENERAL, cs.DIALOG_TEXT_SAVE_OPTIONS)
                 if confirm:
                     self.save_settings()
                 elif confirm is None:
                     return
+
+            f_options = open('general_options.txt', 'a')
+            for key in cfg.topt.keys():
+                f_options.write('#\n' + key + " " + str(cfg.topt[key]) + '\n\n')
+            f_options.close()
 
             Win.quit(self)
 
@@ -389,35 +462,29 @@ class MainWindow(Win):
         self.drawing = True
 
     def choose_start(self, event):
-        cfg.rx0 = event.x
-        cfg.ry0 = event.y
-        self.choosing = True
+        widget = self.frame_main.winfo_children()[0]
+        w = self.fi.width()
+        h = self.fi.height()
+        dx = int((widget.winfo_width() - w)/2)
+        dy = int((widget.winfo_height() - h) / 2)
+        if event.x - dx == cfg.rx1 and event.y - dy == cfg.ry1:
+            self.choosing = False
+
+        if (dx < event.x < dx + w) and (dy < event.y < dy + h):
+            cfg.rx0 = event.x - dx
+            cfg.ry0 = event.y - dy
+            cfg.rx1, cfg.ry1 = 0,0
 
     def choose(self, event):
-        if event.x > 0:
-            cfg.rx1 = event.x
-        if event.y > 0:
-            cfg.ry1 = event.y
+        widget = self.frame_main.winfo_children()[0]
+        w = self.fi.width()
+        h = self.fi.height()
+        dx = int((widget.winfo_width() - w)/2)
+        dy = int((widget.winfo_height() - h) / 2)
+        if (dx < event.x < dx + w) and (dy < event.y < dy + h):
+            cfg.rx1 = event.x - dx
+            cfg.ry1 = event.y - dy
         self.choosing = True
-
-    def choose_area(self, event_type):
-        tx, ty = cfg.opt_size['x0'], cfg.opt_size['y0']
-        x0, x1 = min(cfg.rx0, cfg.rx1) + tx, max(cfg.rx1, cfg.rx0) + tx
-        y0, y1 = min(cfg.ry0, cfg.ry1) + ty, max(cfg.ry1, cfg.ry0) + ty
-
-        if all([x0, y0, x1 - x0, y1 - y0]) > 0:
-            if y0 - ty < 5:
-                y0 = 0  # время обычно выставлено сверху
-            self.tr = [x0, x1, y0, y1]
-            w = int((x1-x0)*self.tc[0].winfo_height()/(y1-y0))
-            h = self.tc[0].winfo_height()
-            self.tr.append(w)
-            self.tr.append(h)
-            for i in range(len(cfg.actions)):
-                self.tc[i].config(width=w, height=h)
-
-            self.choosing = False
-            cfg.rx0, cfg.ry0, cfg.rx1, cfg.ry1 = 0, 0, 0, 0
 
 #
 # Mainframe functions___________________________________________________________________________________________________
@@ -446,7 +513,6 @@ class MainWindow(Win):
         if ret:
             frame1 = imgF.img_cut(frame.copy())
             frame2 = frame1.copy()
-            frame3 = frame.copy()
 
             if self.choosing:
                 x0, x1 = min(cfg.rx0, cfg.rx1), max(cfg.rx1, cfg.rx0)
@@ -456,24 +522,25 @@ class MainWindow(Win):
 
             frame2 = imgF.img_filter(frame2)
             self.fi = PIL.ImageTk.PhotoImage(image=PIL.Image.fromarray(frame2))
-            self.canvas_filtered.create_image(0, 0, image=self.fi, anchor=tk.NW)
+            self.canvas_filtered.create_image(int(self.vid.width/2), int(self.vid.height/2), image=self.fi, anchor=tk.CENTER)
 
             cfg.last = {MyVideo.counter: [cfg.cx, cfg.cy]}
             cfg.cx, cfg.cy, area, cnt = imgF.find_center(frame2)
 
             if self.drawing:
                 cv2.circle(frame1, (cfg.cx, cfg.cy), 7, (0, 0, 255), -1)
+
+            cv2.line(frame1, (int(self.fi.width() / 2), 0), (int(self.fi.width() / 2), int(self.vid.height)), (0, 255, 0), 2)
             self.si = PIL.ImageTk.PhotoImage(image=PIL.Image.fromarray(frame1))
-            self.canvas_source.create_image(0, 0, image=self.si, anchor=tk.NW)
+            self.canvas_source.create_image(int(self.vid.width/2), int(self.vid.height/2), image=self.si, anchor=tk.CENTER)
 
-            if self.tr is not None:
-                x0, x1, y0, y1, w, h = self.tr
-                for i in range(len(cfg.actions)):
-                    self.ti.append(PIL.ImageTk.PhotoImage(image=PIL.Image.fromarray(frame3)
-                                                          .crop((x0, y0, x1, y1))
-                                                          .resize((w, h))))
-
-                    self.tc[i].create_image(0, 0, image=self.ti[-1], anchor=tk.NW)
+            # TODO отображение времени
+            if self.ti[0] is not None:
+                self.ti[1] = PIL.ImageTk.PhotoImage(image=PIL.Image.fromarray(MyVideo.frame.copy())
+                                                    .crop(tuple(self.tr[0:4]))
+                                                    .resize(tuple(self.tr[4:])))
+                for i in [0,1]:
+                    self.frame_time.winfo_children()[i*2].create_image(0, 0, image=self.ti[i], anchor=tk.NW)
 
         self.window.after(delay, self.update)
 
@@ -514,24 +581,81 @@ class MainWindow(Win):
 #
 # Action functions______________________________________________________________________________________________________
 #
-    def action_start(self, index):
-        print("Start: " + cfg.actions[index])
+    def action_start(self, var):
+        i = int(var.get())
 
-    def action_stop(self, index):
-        print("Stop: " + cfg.actions[index])
+        if not self.tr[4]*self.tr[5] == 0 and 0 <= i < len(cfg.actions):
+            print("Actions: " + cfg.actions[i])
+
+            self.ti[0] = PIL.ImageTk.PhotoImage(image=PIL.Image.fromarray(MyVideo.frame.copy())
+                                                .crop(tuple(self.tr[0:4]))
+                                                .resize(tuple(self.tr[4:])))
+        elif self.tr[4]*self.tr[5] == 0:
+            var.set(-1)
+            tk.messagebox.showwarning(cs.DIALOG_TITLE_WARNING, cs.DIALOG_TEXT_WARNING_TIME_AREA)
+
+    def action_write(self, var):
+
+        i = int(var.get())
+
+        if 0 <= i < len(cfg.actions):
+            widgets = self.frame_time.winfo_children()
+
+            if not os.path.exists(cfg.results_dir):
+                os.makedirs(cfg.results_dir)
+
+            results = cfg.results_dir + '/results_' + cfg.video_name[cfg.video_name.rfind('/') + 1:-4] + '.csv'
+
+            if os.path.isfile(results):
+                f_options = open(results, 'a')
+            else:
+                f_options = open(results, 'w')
+                f_options.write('Время начала; Время конца; Движение;\n')
+
+            for entry in [widgets[1], widgets[3]]:
+                t = entry.get()
+                t = t.replace(',', ' ')
+                t = t.replace(':', ' ')
+                words = t.split(' ')
+                print(words)
+                if not len(words) == 3 or not words[0].isnumeric() or not words[1].isnumeric or not words[2].isnumeric:
+                    tk.messagebox.showwarning(cs.DIALOG_TITLE_WARNING, cs.DIALOG_TEXT_WARNING_TIME)
+                    f_options.close()
+                    return
+
+                if not 0 <= all(words) <= 59:
+                    tk.messagebox.showwarning(cs.DIALOG_TITLE_WARNING, cs.DIALOG_TEXT_WARNING_TIME)
+                    f_options.close()
+                    return
+
+                f_options.write(words[0]+':'+words[1]+':'+words[2]+';')
+
+            f_options.write(cfg.actions[i]+';\n')
+            f_options.close()
+            widgets[1].delete(0, tk.END)
+            widgets[3].delete(0, tk.END)
+            var.set(-1)
+            self.window.focus()
+
+        else:
+            tk.messagebox.showwarning(cs.DIALOG_TITLE_WARNING, cs.DIALOG_TEXT_WARNING_ACTION)
+
+    def action_stop(self, var):
+        if not int(var.get()) == -1:
+            self.paused = not self.paused
+            self.frame_time.winfo_children()[1].focus()
 
     def action_init(self, i):
-        tk.Button(self.lines[i], text="Start", command=lambda j=i: self.action_start(j)).pack(side=tk.LEFT)
-        tk.Button(self.lines[i], text="Stop", command=lambda j=i: self.action_stop(j)).pack(side=tk.LEFT)
+        tk.Radiobutton(self.lines[i], text='Start', font="Helvetica 14", variable=self.ca, value=i, indicatoron=0)\
+            .pack(side=tk.LEFT, padx=3, pady=3)
+
         MyEntry(self.lines[i], cfg.actions, self.new_gen_settings, i, tk.LEFT)
-        self.tc.append(tk.Canvas(self.lines[i], bg='black', height=25))
-        self.tc[-1].pack(side=tk.RIGHT)
 
     def action_create(self):
         i = len(cfg.actions)
         cfg.actions[i] = ''
         self.lines[i] = tk.Frame(self.frame_actions)
-        self.lines[i].pack(side=tk.BOTTOM)
+        self.lines[i].pack()
         self.action_init(i)
 
 

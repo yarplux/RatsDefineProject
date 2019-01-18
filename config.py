@@ -33,6 +33,7 @@ video_name = ''
 options_name = ''
 options_dir = ''
 track_dir = ''
+results_dir = ''
 
 
 # Инициализация опций программы (подгрузка из файла)
@@ -60,7 +61,7 @@ def init_gen_options():
 
 def init_options():
     global opt, opt_filters, opt_size, opt_process, actions, exclude, labels, topt, \
-        video_name, options_name, options_dir, track_dir
+        video_name, options_name, options_dir, track_dir, results_dir
 
     print('Last video folder:', topt['last_video'])
     video_name = filedialog.askopenfilename(initialdir=topt['last_video'],
@@ -74,7 +75,8 @@ def init_options():
         return False
 
     options_dir = video_name[:video_name.rfind('/')] + cs.DIR_OPTIONS[1:]
-    track_dir = video_name[:video_name.rfind('/')] + cs.DIR_TRACKS
+    track_dir = video_name[:video_name.rfind('/')] + cs.DIR_TRACKS[1:]
+    results_dir = video_name[:video_name.rfind('/')] + cs.DIR_RESULTS[1:]
 
     options_name = options_dir + '/options_' + video_name[video_name.rfind('/') + 1:-4] + '.txt'
     if not (os.path.exists(options_dir) and os.path.isfile(options_name)):
@@ -110,5 +112,6 @@ def init_options():
     # print("WinSize:", opt_size)
     # print("Actions:", actions)
     # print("Excluded options: ", exclude)
-    # print("Other options: ", opt)
+    # print("Other options: ", opt, topt)
+
     return True
