@@ -106,12 +106,12 @@ def init_options():
         line = file_options.readline()
     file_options.close()
 
-    # print("Labels:", labels)
-    # print("Filters:", opt_filters)
-    # print("Process:", opt_process)
-    # print("WinSize:", opt_size)
-    # print("Actions:", actions)
-    # print("Excluded options: ", exclude)
-    # print("Other options: ", opt, topt)
+    print("Labels:", labels)
+    print("Filters:", opt_filters)
+    print("Process:", opt_process)
+    print("WinSize:", opt_size)
+    print("Actions:", actions)
+    print("Excluded options: ", exclude)
+    print("Other options: ", opt, topt)
 
     return True

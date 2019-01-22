@@ -8,7 +8,7 @@ process delay_Max 500
 process FrameDelta 10 Cледующий кадр
 
 #
-process FrameDelta_Max 10
+process FrameDelta_Max 20
 
 #
 action Сидит, шебуршится
@@ -26,6 +26,42 @@ last_video D:/DevTemp/PyCharm/tmpOpencv/videos
 
 #
 last_video D:/DevTemp/PyCharm/tmpOpencv/videos
+
+#
+last_video D:/DevTemp/PyCharm/tmpOpencv/videos
+
+#
+last_video D:/DevTemp/PyCharm/tmpOpencv/videos
+
+#
+last_video D:/DevTemp/PyCharm/tmpOpencv/videos
+
+#
+last_video D:/DevTemp/PyCharm/tmpOpencv/videos
+
+#
+last_video D:/DevTemp/PyCharm/tmpOpencv/videos
+
+#
+last_video D:/DevTemp/PyCharm/tmpOpencv/videos
+
+#
+last_video D:/DevTemp/PyCharm/tmpOpencv/videos
+
+#
+last_video D:/DevTemp/PyCharm/tmpOpencv/videos
+
+#
+last_video D:/DevTemp/PyCharm/tmpOpencv/videos
+
+#
+last_video D:/DevTemp/PyCharm/tmpOpencv/videos
+
+#
+last_video //Kardio_lab/SharedDocs/WKY3
+
+#
+last_video //Kardio_lab/SharedDocs/WKY3
 
 #
 last_video D:/DevTemp/PyCharm/tmpOpencv/videos

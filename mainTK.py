@@ -185,6 +185,18 @@ class MainWindow(Win):
         self.frame_settings.pack(fill=tk.Y, side=tk.RIGHT)
 
         self.init_slider(cfg.opt_process, 1, self.ch_proc)
+
+        tk.Frame(self.frame_settings, height=2, bg="black").pack(fill=tk.X, pady=5)
+
+        tk.Label(self.frame_settings, text="Выбор положение разделителя:", font=("Helvetica", 12, 'bold')).pack()
+        self.MODES = ['Горизонтально', 'Вертикально']
+        self.divider = tk.StringVar()
+        self.divider.set(0)
+
+        for text in self.MODES:
+            b = tk.Radiobutton(self.frame_settings, text=text, variable=self.divider, value=self.MODES.index(text))
+            b.pack(fill=tk.X, padx=10, pady=3)
+
         tk.Frame(self.frame_settings, height=2, bg="black").pack(fill=tk.X, pady=5)
         tk.Label(self.frame_settings, text="Настройки видео:", font=("Helvetica", 16, 'bold')).pack()
 
@@ -530,7 +542,13 @@ class MainWindow(Win):
             if self.drawing:
                 cv2.circle(frame1, (cfg.cx, cfg.cy), 7, (0, 0, 255), -1)
 
-            cv2.line(frame1, (int(self.fi.width() / 2), 0), (int(self.fi.width() / 2), int(self.vid.height)), (0, 255, 0), 2)
+            if int(self.divider.get()) == 0:
+                cv2.line(frame1, (int(self.fi.width() / 2), 0), (int(self.fi.width() / 2), int(self.vid.height)),
+                         (0, 255, 0), 2)
+            else:
+                cv2.line(frame1, (0, int(self.fi.height() / 2)), (int(self.vid.width), int(self.fi.height() / 2)),
+                         (0, 255, 0), 2)
+
             self.si = PIL.ImageTk.PhotoImage(image=PIL.Image.fromarray(frame1))
             self.canvas_source.create_image(int(self.vid.width/2), int(self.vid.height/2), image=self.si, anchor=tk.CENTER)
 
